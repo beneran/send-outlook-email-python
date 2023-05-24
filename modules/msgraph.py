@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import os
 from dotenv import load_dotenv
+import requests
 
 load_dotenv()
 
@@ -29,7 +30,7 @@ def get_token_cache(token_file):
 
 
 def get_access_token():
-    print(APP_ID)
+    # print(APP_ID)
     stored_token_path = os.path.join("token", "api_token.json")
     acces_token_cache = get_token_cache(stored_token_path)
 
@@ -53,6 +54,45 @@ def get_access_token():
 
     print(token_response)
     return token_response
+
+
+def refresh_token_manual(token_file):
+    if os.path.exists(token_file):
+        token_detail = json.load(open(token_file, "r"))
+        refresh_token_key = list(token_detail["RefreshToken"].keys())[0]
+        refresh_token_secret = token_detail["RefreshToken"][refresh_token_key]["secret"]
+
+        params = {
+            "client_id": APP_ID,
+            "scope": SCOPES[0],
+            "refresh_token": refresh_token_secret,
+            "grant_type": "refresh_token",
+        }
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        responses = requests.post(
+            "https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
+            data=params,
+            headers=headers,
+        )
+        if responses.status_code == 200:
+            data = responses.json()
+            token_detail_key = list(token_detail["AccessToken"].keys())[0]
+            token_detail["AccessToken"][token_detail_key]["secret"] = data[
+                "access_token"
+            ]
+            now = int(datetime.now().timestamp())
+            token_detail["AccessToken"][token_detail_key]["cached_at"] = str(now)
+            token_detail["AccessToken"][token_detail_key]["expires_on"] = str(
+                now + data["expires_in"]
+            )
+            token_detail["AccessToken"][token_detail_key]["extended_expires_on"] = str(
+                now + data["ext_expires_in"]
+            )
+            try:
+                with open(token_file, "w") as _f:
+                    json.dump(token_detail, _f)
+            except Exception as e:
+                print(e)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ def send_text_email(to: str, subject: str, content: str = "content"):
                 "contentType": "text",  # or html
                 "content": content,
             },
-            "importance": "low",
+            "importance": "normal",
         }
     }
     response = requests.post(endpoint, headers=headers, json=request_body)

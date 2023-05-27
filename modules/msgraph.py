@@ -24,13 +24,11 @@ def get_token_cache(token_file):
             int(token_detail["AccessToken"][token_detail_key]["expires_on"])
         )
         if datetime.now() > token_expiration:
-            os.remove(token_file)
-            acces_token_cache = SerializableTokenCache()
+            refresh_token_manual(token_file)
     return acces_token_cache
 
 
 def get_access_token():
-    # print(APP_ID)
     stored_token_path = os.path.join("token", "api_token.json")
     acces_token_cache = get_token_cache(stored_token_path)
 
@@ -44,15 +42,13 @@ def get_access_token():
     else:
         flow = app.initiate_device_flow(scopes=SCOPES)
         print(flow)
-        webbrowser.open("https://www.microsoft.com/link")
+        webbrowser.open(flow["verification_uri"])
         result = app.acquire_token_by_device_flow(flow)
 
         token_response = result["access_token"]
 
-    with open(stored_token_path, "w") as _f:
-        _f.write(acces_token_cache.serialize())
-
-    print(token_response)
+        with open(stored_token_path, "w") as _f:
+            _f.write(acces_token_cache.serialize())
     return token_response
 
 
